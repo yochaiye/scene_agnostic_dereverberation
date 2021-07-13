@@ -15,6 +15,7 @@ import pickle
 import numpy as np
 import scipy.io
 import soundfile as sf
+import argparse
 import matplotlib.pyplot as plt
 
 MICS_NUM = 8
@@ -186,21 +187,38 @@ def enhance_scenario(wavs_dir, results_dir, scenario_file, mics_num, net, device
 
 
 if __name__ == '__main__':
+
+    # Args parser
+    parser = argparse.ArgumentParser('')
+
+    parser.add_argument('--version_name', help='BIUREV/BIUREV-N', type=str)
+    parser.add_argument('--dataset', help='BIUREV/BIUREV-N', type=str, default='BIUREV', choices=['BIUREV', 'BIUREV-N'])
+    parser.add_argument('--ngf', help='base number of filters.', type=int, default=64)
+    parser.add_argument('--unet_arch', help='U-net architecture.', type=str, default='vanilla',
+                        choices=['dss', 'vanilla'])
+
+    # gpu choice
+    parser.add_argument('--gpu_id', help='gpu id to run on', type=int, default='0')
+
+    args = parser.parse_args()
+
     # Load model
-    trained_model_path = "./trained_models/mics8_24.03.2021_05:33:29/checkpoints/epoch69.pt"
+    trained_model_path = f"./trained_models/{args.version_name}/checkpoints/epoch69.pt"
     mics_num = int(trained_model_path[21])
-    wavs_dir = pathlib.Path('/mnt/dsi_vol1/users/yochai_yemini/BIUREV')
-    min_max_file = f'./spectrograms/BIUREV/mics2/train/global_min_max.p'
-    results_dir = pathlib.Path('/mnt/dsi_vol1/users/yochai_yemini/BIUREV/results')
+    wavs_dir = pathlib.Path(f'/mnt/dsi_vol1/users/yochai_yemini/{args.dataset}')
+    min_max_file = f'./spectrograms/BIUREV/mics{mics_num}/train/global_min_max.p'
+    results_dir = pathlib.Path(f'/mnt/dsi_vol1/users/yochai_yemini/{args.dataset}/results')
     gpu = 3
 
-    device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
     if mics_num != 1:
-        # net = networks.model.UNet(ngf=64, nc=mics_num, kernel_size=4).to(device)
-        net = networks.model_dss.UNet(ngf=64, nc=1, kernel_size=4).to(device)
+        if args.unet_arch == 'vanilla':
+            net = networks.model.UNet(ngf=args.ngf, nc=mics_num, kernel_size=4).to(device)
+        else:
+            net = networks.model_dss.UNet(ngf=args.ngf, nc=1, kernel_size=4).to(device)
     else:
-        net = networks.model.UNet(ngf=64, nc=1, kernel_size=4).to(device)
-    net_state_dict = torch.load(trained_model_path, map_location=f"cuda:{gpu}")
+        net = networks.model.UNet(ngf=args.ngf, nc=1, kernel_size=4).to(device)
+    net_state_dict = torch.load(trained_model_path, map_location=f"cuda:{args.gpu_id}")
     net_state_dict = utils.remove_module_str(net_state_dict)
     net.load_state_dict(net_state_dict)
 
@@ -209,10 +227,8 @@ if __name__ == '__main__':
         log_max_clean, log_min_clean, log_max_reverb, log_min_reverb = pickle.load(f)
 
     dists = ['near', 'far', 'random', 'winning_ticket']
-    rooms = ['room1']
     for dist in dists:
-        for room in rooms:
-            scenario_file = pathlib.Path('./taskfiles/SimData_et_for_' + dist)
-            scenario_file_clean = pathlib.Path('taskfiles/SimData_et_for_cln')
-            enhance_scenario(wavs_dir, results_dir, scenario_file, mics_num, net, device, trained_model_path)
+        scenario_file = pathlib.Path('./taskfiles/SimData_et_for_' + dist)
+        scenario_file_clean = pathlib.Path('taskfiles/SimData_et_for_cln')
+        enhance_scenario(wavs_dir, results_dir, scenario_file, mics_num, net, device, trained_model_path)
 
