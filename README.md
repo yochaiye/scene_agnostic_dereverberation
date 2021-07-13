@@ -1,4 +1,4 @@
-# scene_agnostic_dereverberation
+# Scene-Agnostic Dereverberation
 PyTorch implementation of the 2021 INTERSPEECH paper "Scene-Agnostic Multi-Microphone Speech Dereverberation".  
 The code for generating the BIUREV/BIUREV-N datasets described in the paper can be found [here](https://github.com/yochaiye/BIUREVgen).
 
