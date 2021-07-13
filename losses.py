@@ -3,7 +3,7 @@
 """
 Created on Tue Jul 28 18:32:53 2020
 
-Implemented in
+Implemented taken from
 https://github.com/FrederikWarburg/Burst-Image-Deblurring/blob/23ea503c9c2c27567308da13a2d28d28629e8c25/burstloss.py#L6
 """
 
